@@ -40,12 +40,8 @@ class Config:
         return self.get('app', 'debug', default=False)
 
     @property
-    def spreadsheet_id(self):
-        return self.get('google_sheets', 'spreadsheet_id')
-
-    @property
-    def credentials_path(self):
-        return self.get('google_sheets', 'credentials_path')
+    def firebase_credentials_path(self):
+        return self.get('firebase', 'credentials_path')
 
     @property
     def current_year(self):

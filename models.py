@@ -155,21 +155,21 @@ class ScoreCalculator:
 
 
 class PredictionService:
-    def __init__(self, sheets_client):
-        self.sheets = sheets_client
+    def __init__(self, db_client):
+        self.db = db_client
 
     def get_or_create_user(self, username, display_name=None):
-        user = self.sheets.get_user(username)
+        user = self.db.get_user(username)
         if not user:
-            user = self.sheets.add_user(username, display_name)
+            user = self.db.add_user(username, display_name)
         return User.from_dict(user)
 
     def get_questions_for_year(self, year):
-        questions_data = self.sheets.get_all_questions(year=year, active_only=True)
+        questions_data = self.db.get_all_questions(year=year, active_only=True)
         return [Question.from_dict(q) for q in questions_data]
 
     def get_predictions_for_user_year(self, username, year):
-        predictions_data = self.sheets.get_all_predictions(username=username, year=year)
+        predictions_data = self.db.get_all_predictions(username=username, year=year)
         return [Prediction.from_dict(p) for p in predictions_data]
 
     def create_prediction(self, question_id, username, year, answer, confidence, notes=''):
@@ -180,7 +180,7 @@ class PredictionService:
             raise ValueError("Invalid confidence. Must be 1-5")
 
         answer = utils.normalize_answer(answer)
-        prediction_id = self.sheets.add_prediction(
+        prediction_id = self.db.add_prediction(
             question_id=question_id,
             username=username,
             year=year,
@@ -198,7 +198,7 @@ class PredictionService:
             raise ValueError("Invalid confidence. Must be 1-5")
 
         answer = utils.normalize_answer(answer)
-        success = self.sheets.update_prediction(
+        success = self.db.update_prediction(
             prediction_id=prediction_id,
             answer=answer,
             confidence=confidence,
@@ -213,7 +213,7 @@ class PredictionService:
         if not utils.validate_year(year):
             raise ValueError("Invalid year")
 
-        question_id = self.sheets.add_question(
+        question_id = self.db.add_question(
             year=year,
             question_text=question_text.strip(),
             created_by=created_by
@@ -226,11 +226,11 @@ class PredictionService:
 
         actual_answer = utils.normalize_answer(actual_answer)
 
-        existing_result, _ = self.sheets.get_result(question_id)
+        existing_result, _ = self.db.get_result(question_id)
         if existing_result:
-            return self.sheets.update_result(question_id, actual_answer)
+            return self.db.update_result(question_id, actual_answer)
         else:
-            return self.sheets.add_result(
+            return self.db.add_result(
                 question_id=question_id,
                 year=year,
                 actual_answer=actual_answer,
@@ -238,8 +238,8 @@ class PredictionService:
             )
 
     def get_score_for_user_year(self, username, year):
-        predictions = self.sheets.get_all_predictions(username=username, year=year)
-        results = self.sheets.get_all_results(year=year)
+        predictions = self.db.get_all_predictions(username=username, year=year)
+        results = self.db.get_all_results(year=year)
 
         score = ScoreCalculator.calculate_basic_score(predictions, results)
         calibration = ScoreCalculator.calculate_confidence_calibration(predictions, results)
@@ -250,9 +250,9 @@ class PredictionService:
         }
 
     def get_review_data_for_year(self, username, year):
-        predictions = self.sheets.get_all_predictions(username=username, year=year)
-        questions = self.sheets.get_all_questions(year=year, active_only=False)
-        results = self.sheets.get_all_results(year=year)
+        predictions = self.db.get_all_predictions(username=username, year=year)
+        questions = self.db.get_all_questions(year=year, active_only=False)
+        results = self.db.get_all_results(year=year)
 
         questions_dict = {q['question_id']: q for q in questions}
         results_dict = {r['question_id']: r for r in results}
@@ -273,11 +273,11 @@ class PredictionService:
         return review_items
 
     def get_available_years(self):
-        return self.sheets.get_years_with_predictions()
+        return self.db.get_years_with_predictions()
 
     def get_questions_for_resolution(self, year):
-        questions = self.sheets.get_all_questions(year=year, active_only=False)
-        results = self.sheets.get_all_results(year=year)
+        questions = self.db.get_all_questions(year=year, active_only=False)
+        results = self.db.get_all_results(year=year)
 
         results_dict = {r['question_id']: r for r in results}
 

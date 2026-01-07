@@ -2,9 +2,8 @@ app:
   secret_key: "your-secret-key-here-generate-random-string"
   debug: true
 
-google_sheets:
-  spreadsheet_id: "YOUR_GOOGLE_SHEET_ID_HERE"
-  credentials_path: "credentials/service-account.json"
+firebase:
+  credentials_path: "credentials/firebase-service-account.json"
 
 app_settings:
   current_year: 2026

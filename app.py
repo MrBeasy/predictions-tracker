@@ -3,7 +3,7 @@ from datetime import timedelta
 import os
 
 from config import load_config
-from sheets_client import SheetsClient
+from firebase_client import FirebaseClient
 from models import PredictionService
 import auth
 import utils
@@ -14,12 +14,11 @@ config = load_config()
 app.config['SECRET_KEY'] = config.secret_key
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
-sheets_client = SheetsClient(
-    credentials_path=config.credentials_path,
-    spreadsheet_id=config.spreadsheet_id
+firebase_client = FirebaseClient(
+    credentials_path=config.firebase_credentials_path
 )
 
-prediction_service = PredictionService(sheets_client)
+prediction_service = PredictionService(firebase_client)
 
 
 @app.context_processor
@@ -152,7 +151,7 @@ def predictions_edit(prediction_id):
     username = auth.get_current_user()
 
     try:
-        prediction_data, _ = sheets_client.get_prediction(prediction_id)
+        prediction_data, _ = firebase_client.get_prediction(prediction_id)
 
         if not prediction_data:
             flash('Prediction not found.', 'danger')
@@ -184,7 +183,7 @@ def predictions_edit(prediction_id):
             except Exception as e:
                 flash(f'Error updating prediction: {str(e)}', 'danger')
 
-        question = sheets_client.get_question(prediction_data['question_id'])
+        question = firebase_client.get_question(prediction_data['question_id'])
 
         return render_template(
             'predictions_edit.html',
@@ -302,7 +301,7 @@ def admin_questions():
             flash(f'Error adding question: {str(e)}', 'danger')
 
     try:
-        questions = sheets_client.get_all_questions(active_only=False)
+        questions = firebase_client.get_all_questions(active_only=False)
         return render_template(
             'admin_questions.html',
             questions=questions,
@@ -357,11 +356,11 @@ def admin_resolve(year=None):
 def initialize():
     if request.method == 'POST':
         try:
-            sheets_client.initialize_sheets()
-            flash('Google Sheets initialized successfully!', 'success')
+            firebase_client.initialize_collections()
+            flash('Firebase Firestore initialized successfully!', 'success')
             return redirect(url_for('login'))
         except Exception as e:
-            flash(f'Error initializing sheets: {str(e)}', 'danger')
+            flash(f'Error initializing Firestore: {str(e)}', 'danger')
 
     return render_template('initialize.html')
 

@@ -1,6 +1,6 @@
 # Predictions Tracker
 
-A web application for tracking yearly predictions with Google Sheets as the backend database.
+A web application for tracking yearly predictions with Google Firebase Firestore as the backend database.
 
 ## Features
 
@@ -11,52 +11,41 @@ A web application for tracking yearly predictions with Google Sheets as the back
 - Notes/reasoning for each prediction
 - Multi-user support with simple username authentication
 - Admin interface for managing questions and resolving outcomes
-- Google Sheets integration for data storage
+- Firebase Firestore integration for scalable data storage
+- Real-time data synchronization
 
 ## Requirements
 
 - Python 3.8+
-- Google Cloud Platform account
-- Google Spreadsheet
+- Google Firebase account
+- Firebase project with Firestore enabled
 
 ## Setup Instructions
 
-### 1. Google Cloud Setup
+### 1. Firebase Project Setup
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Google Sheets API:
-   - Navigate to "APIs & Services" > "Library"
-   - Search for "Google Sheets API"
-   - Click "Enable"
-4. Create a Service Account:
-   - Go to "APIs & Services" > "Credentials"
-   - Click "Create Credentials" > "Service Account"
-   - Fill in the service account details
-   - Click "Create and Continue"
-   - Skip granting roles (click "Continue")
-   - Click "Done"
-5. Generate Service Account Key:
-   - Click on the service account you just created
-   - Go to "Keys" tab
-   - Click "Add Key" > "Create new key"
-   - Select "JSON" format
-   - Download the key file
-   - Save it as `service-account.json` in the `credentials/` directory
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Click "Add project" or select an existing project
+3. Follow the setup wizard to create your project
 
-### 2. Google Spreadsheet Setup
+### 2. Enable Firestore
 
-1. Create a new Google Spreadsheet
-2. Copy the Spreadsheet ID from the URL:
-   - URL format: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
-   - Copy the `SPREADSHEET_ID` part
-3. Share the spreadsheet with the service account email:
-   - Open the JSON key file you downloaded
-   - Find the `client_email` field (looks like `xyz@abc.iam.gserviceaccount.com`)
-   - In your Google Spreadsheet, click "Share"
-   - Add the service account email with "Editor" permissions
+1. In the Firebase Console, click "Firestore Database" in the left sidebar
+2. Click "Create database"
+3. Choose "Start in production mode" (we'll use service account for security)
+4. Select a Cloud Firestore location (choose one close to your users)
+5. Click "Enable"
 
-### 3. Application Setup
+### 3. Create Service Account
+
+1. In Firebase Console, click the gear icon ⚙️ next to "Project Overview"
+2. Click "Project settings"
+3. Go to the "Service accounts" tab
+4. Click "Generate new private key"
+5. Click "Generate key" - this downloads a JSON file
+6. Save this file as `firebase-service-account.json` in the `credentials/` directory
+
+### 4. Application Setup
 
 1. Clone or download this project
 
@@ -76,9 +65,8 @@ app:
   secret_key: "generate-a-random-secret-key-here"  # Use a random string
   debug: true  # Set to false in production
 
-google_sheets:
-  spreadsheet_id: "YOUR_SPREADSHEET_ID_HERE"  # Paste your spreadsheet ID
-  credentials_path: "credentials/service-account.json"
+firebase:
+  credentials_path: "credentials/firebase-service-account.json"
 
 app_settings:
   current_year: 2026  # Update to current year
@@ -87,30 +75,25 @@ app_settings:
     - "admin"  # Add your admin username(s)
 ```
 
-5. Place your service account JSON file:
+5. Place your Firebase service account JSON file:
 ```bash
 mkdir credentials
-# Copy your service-account.json to credentials/
+# Copy your firebase-service-account.json to credentials/
 ```
 
-### 4. Initialize the Application
+### 5. Run the Application
 
-1. Initialize Google Sheets structure:
-```bash
-python -c "from sheets_client import SheetsClient; from config import load_config; c = load_config(); s = SheetsClient(c.credentials_path, c.spreadsheet_id); s.initialize_sheets()"
-```
-
-Or visit `http://localhost:5000/initialize` after starting the app.
-
-2. Run the application:
+1. Start the Flask application:
 ```bash
 python app.py
 ```
 
-3. Open your browser and navigate to:
+2. Open your browser and navigate to:
 ```
 http://localhost:5000
 ```
+
+3. (Optional) Visit `/initialize` to verify Firebase connection
 
 ## Usage
 
@@ -129,6 +112,7 @@ http://localhost:5000
 ### For Admins
 
 1. **Manage Questions**: Add new questions for any year
+   - Optionally set the actual answer immediately (for historical questions)
 2. **Resolve Results**: Mark actual outcomes for past questions to calculate user scores
 
 ## Project Structure
@@ -139,7 +123,7 @@ prediction-app/
 ├── config.py                   # Configuration loader
 ├── auth.py                     # Authentication logic
 ├── models.py                   # Data models & business logic
-├── sheets_client.py            # Google Sheets API wrapper
+├── firebase_client.py          # Firebase Firestore client
 ├── utils.py                    # Utility functions
 ├── requirements.txt            # Python dependencies
 ├── config.yaml                 # Configuration file (create from example)
@@ -147,42 +131,101 @@ prediction-app/
 ├── README.md                   # This file
 ├── templates/                  # HTML templates
 ├── static/                     # CSS and JS files
-└── credentials/                # Google credentials (gitignored)
+└── credentials/                # Firebase credentials (gitignored)
 ```
 
 ## Data Model
 
-The application uses 4 Google Sheets:
+The application uses 4 Firestore collections:
 
-1. **Users**: username, display_name, created_at
-2. **Questions**: question_id, year, question_text, created_by, created_at, is_active
-3. **Predictions**: prediction_id, question_id, username, year, answer, confidence, notes, created_at, updated_at
-4. **Results**: question_id, year, actual_answer, resolved_at, resolved_by
+1. **users**: username (doc ID), display_name, created_at
+2. **questions**: question_id (doc ID), year, question_text, created_by, created_at, is_active
+3. **predictions**: prediction_id (doc ID), question_id, username, year, answer, confidence, notes, created_at, updated_at
+4. **results**: result_id (doc ID), question_id, year, actual_answer, resolved_at, resolved_by
+
+## Firestore Security Rules
+
+For production, add these security rules in Firebase Console → Firestore Database → Rules:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow service account full access (for backend)
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+Note: This app uses server-side Firebase Admin SDK, so client-side rules are not strictly necessary. However, setting rules adds an extra layer of security.
+
+## Migration from Google Sheets
+
+If you're migrating from the Google Sheets version:
+
+1. Export your data from Google Sheets (Users, Questions, Predictions, Results)
+2. Create a migration script to import data into Firestore:
+   ```python
+   from firebase_client import FirebaseClient
+
+   client = FirebaseClient('credentials/firebase-service-account.json')
+
+   # Import users
+   for user in sheet_users:
+       client.add_user(user['username'], user['display_name'])
+
+   # Import questions, predictions, results similarly
+   ```
 
 ## Security Notes
 
 - Never commit `config.yaml` or `credentials/` to version control
 - Use a strong random string for `secret_key` in production
 - Consider adding password authentication for production use
-- The service account has editor access to the spreadsheet
+- Firebase service account has full access to your Firestore database
+- In production, use environment variables for sensitive configuration
+
+## Advantages of Firebase over Google Sheets
+
+- **Better Performance**: Real database queries vs spreadsheet filtering
+- **Scalability**: Handles more concurrent users and larger datasets
+- **Real-time Updates**: Live data synchronization capabilities
+- **Proper Indexing**: Faster queries with Firestore indexes
+- **Security**: Fine-grained security rules
+- **No Rate Limits**: Unlike Sheets API, Firestore has generous quotas
 
 ## Troubleshooting
 
 ### "Configuration file not found"
 - Make sure you created `config.yaml` from `config.yaml.example`
 
-### "Unable to connect to Google Sheets"
-- Verify the service account JSON file is in `credentials/`
-- Check that the spreadsheet is shared with the service account email
-- Ensure Google Sheets API is enabled in Google Cloud Console
+### "Unable to connect to Firebase"
+- Verify the Firebase service account JSON file is in `credentials/`
+- Check that the file path in config.yaml is correct
+- Ensure your Firebase project has Firestore enabled
 
 ### "Permission denied" errors
-- Verify the service account has Editor permissions on the spreadsheet
-- Check that credentials file path in config.yaml is correct
+- Verify the service account key is valid
+- Check Firestore security rules allow server-side access
+- Ensure credentials file path in config.yaml is correct
+
+### FirebaseError: "Project ID not found"
+- Make sure you're using the correct service account file
+- Verify the JSON file contains a `project_id` field
 
 ## Deployment
 
-For production deployment:
+### Option 1: Firebase Hosting + Cloud Run
+
+1. Containerize the Flask app
+2. Deploy to Cloud Run
+3. Use Firebase Hosting for static content
+
+### Option 2: Traditional Hosting
+
+For production deployment on any server:
 
 1. Set `debug: false` in config.yaml
 2. Use a production WSGI server like Gunicorn:
@@ -190,10 +233,28 @@ For production deployment:
 pip install gunicorn
 gunicorn -w 4 -b 0.0.0.0:5000 app:app
 ```
-3. Consider using a reverse proxy (nginx)
-4. Set up HTTPS
+3. Set up a reverse proxy (nginx)
+4. Configure HTTPS
 5. Use environment variables for sensitive config
+
+### Option 3: Cloud Functions
+
+Deploy as a Firebase Cloud Function for serverless operation.
 
 ## License
 
 This project is provided as-is for personal use.
+
+## Changelog
+
+### v2.0.0 - Firebase Migration
+- Migrated from Google Sheets to Firebase Firestore
+- Improved performance and scalability
+- Real-time data synchronization capabilities
+- Better query performance with proper indexing
+
+### v1.0.0 - Initial Release
+- Google Sheets-based storage
+- Basic prediction tracking
+- Score calculation
+- Multi-user support
