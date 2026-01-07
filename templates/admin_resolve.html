@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Resolve Results - Predictions Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Resolve Results - {{ year }}</h1>
+            <div>
+                <select class="form-select" onchange="window.location.href='{{ url_for('admin_resolve') }}/' + this.value">
+                    <option value="">Select Year</option>
+                    {% for y in available_years %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <strong>Instructions:</strong> Mark the actual outcomes for each question. This will calculate user scores.
+        </div>
+
+        {% if items %}
+            <form method="POST" id="resolveForm">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 60%;">Question</th>
+                                <th>Current Result</th>
+                                <th>Set Actual Result</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                                <tr>
+                                    <td>{{ item.question.question_text }}</td>
+                                    <td>
+                                        {% if item.result %}
+                                            <span class="badge bg-{{ 'success' if item.result.actual_answer == 'yes' else 'danger' }}">
+                                                {{ item.result.actual_answer|upper }}
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">
+                                                Resolved {{ item.result.resolved_at[:10] if item.result.resolved_at else '' }}
+                                            </small>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Not Resolved</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <input type="hidden" name="question_id" value="{{ item.question.question_id }}" form="form_{{ item.question.question_id }}">
+                                        <div class="btn-group" role="group">
+                                            <input type="radio" class="btn-check" name="actual_answer_{{ item.question.question_id }}"
+                                                id="yes_{{ item.question.question_id }}" value="yes"
+                                                {% if item.result and item.result.actual_answer == 'yes' %}checked{% endif %}
+                                                form="form_{{ item.question.question_id }}">
+                                            <label class="btn btn-outline-success btn-sm" for="yes_{{ item.question.question_id }}">YES</label>
+
+                                            <input type="radio" class="btn-check" name="actual_answer_{{ item.question.question_id }}"
+                                                id="no_{{ item.question.question_id }}" value="no"
+                                                {% if item.result and item.result.actual_answer == 'no' %}checked{% endif %}
+                                                form="form_{{ item.question.question_id }}">
+                                            <label class="btn btn-outline-danger btn-sm" for="no_{{ item.question.question_id }}">NO</label>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <form method="POST" id="form_{{ item.question.question_id }}" style="display: inline;">
+                                            <input type="hidden" name="question_id" value="{{ item.question.question_id }}">
+                                            <button type="submit" class="btn btn-primary btn-sm"
+                                                onclick="this.form.actual_answer.value = document.querySelector('input[name=actual_answer_{{ item.question.question_id }}]:checked')?.value; return document.querySelector('input[name=actual_answer_{{ item.question.question_id }}]:checked') !== null;">
+                                                Save
+                                            </button>
+                                            <input type="hidden" name="actual_answer" value="">
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        {% else %}
+            <div class="alert alert-warning">
+                No questions found for {{ year }}.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

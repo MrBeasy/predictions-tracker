@@ -1,0 +1,41 @@
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.footer {
+    margin-top: auto;
+}
+
+.table th {
+    white-space: nowrap;
+}
+
+.card {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-group .btn-check:checked + .btn-outline-success {
+    background-color: #198754;
+    color: white;
+}
+
+.btn-group .btn-check:checked + .btn-outline-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.25rem;
+}
+
+.display-1 {
+    font-weight: bold;
+}
+
+.alert-dismissible .btn-close {
+    padding: 0.75rem;
+}

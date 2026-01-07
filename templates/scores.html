@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Scores {{ year }} - Predictions Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Scores - {{ year }}</h1>
+            <div>
+                <select class="form-select" onchange="window.location.href='{{ url_for('scores') }}/' + this.value">
+                    <option value="">Select Year</option>
+                    {% for y in available_years %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {% if score %}
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0">Overall Score</h4>
+                        </div>
+                        <div class="card-body text-center">
+                            <h1 class="display-1 text-primary">{{ score.percentage }}%</h1>
+                            <p class="lead">Prediction Accuracy</p>
+                            <hr>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <h3 class="text-success">{{ score.correct }}</h3>
+                                    <small class="text-muted">Correct</small>
+                                </div>
+                                <div class="col-4">
+                                    <h3 class="text-danger">{{ score.incorrect }}</h3>
+                                    <small class="text-muted">Incorrect</small>
+                                </div>
+                                <div class="col-4">
+                                    <h3>{{ score.total }}</h3>
+                                    <small class="text-muted">Total</small>
+                                </div>
+                            </div>
+                            {% if score.unresolved > 0 %}
+                                <div class="alert alert-warning mt-3 mb-0">
+                                    {{ score.unresolved }} prediction(s) not yet resolved
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h4 class="mb-0">Confidence Calibration</h4>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">How well did your confidence match your accuracy?</p>
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Confidence</th>
+                                        <th>Predictions</th>
+                                        <th>Accuracy</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for level in [1, 2, 3, 4, 5] %}
+                                        {% if calibration[level].total > 0 %}
+                                            <tr>
+                                                <td>
+                                                    {% for i in range(level) %}
+                                                        <span class="text-warning">★</span>
+                                                    {% endfor %}
+                                                </td>
+                                                <td>{{ calibration[level].total }}</td>
+                                                <td>
+                                                    <span class="badge bg-{% if calibration[level].percentage >= 70 %}success{% elif calibration[level].percentage >= 50 %}warning{% else %}danger{% endif %}">
+                                                        {{ calibration[level].percentage }}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <small class="text-muted">
+                                <strong>Tip:</strong> Well-calibrated predictions should show higher accuracy at higher confidence levels.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{{ url_for('review', year=year) }}" class="btn btn-primary btn-lg">
+                    View Detailed Review
+                </a>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <p>No scores available for {{ year }} yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

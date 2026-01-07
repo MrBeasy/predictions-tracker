@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Initialize - Predictions Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Initialize Google Sheets</h2>
+                <p class="text-muted">
+                    This will create the required sheets (Users, Questions, Predictions, Results) in your Google Spreadsheet.
+                    You only need to do this once when setting up the application.
+                </p>
+
+                <div class="alert alert-warning">
+                    <strong>Before proceeding:</strong>
+                    <ul class="mb-0">
+                        <li>Make sure you have configured <code>config.yaml</code> with your spreadsheet ID</li>
+                        <li>Ensure the service account credentials file is in place</li>
+                        <li>Share your Google Spreadsheet with the service account email</li>
+                    </ul>
+                </div>
+
+                <form method="POST" onsubmit="return confirm('Are you sure you want to initialize the sheets? This is safe to run multiple times.');">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Initialize Sheets</button>
+                        <a href="{{ url_for('login') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

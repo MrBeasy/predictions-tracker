@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Questions - Predictions Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Manage Questions</h1>
+
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Add New Question</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="year" class="form-label">Year</label>
+                                <input type="number" class="form-control" id="year" name="year"
+                                    value="{{ current_year }}" min="2000" max="2100" required>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="mb-3">
+                                <label for="question_text" class="form-label">Question Text</label>
+                                <input type="text" class="form-control" id="question_text" name="question_text"
+                                    placeholder="Will X happen by the end of the year?" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Actual Answer (Optional - for historical questions)</label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="actual_answer" id="answer_none" value="" checked>
+                                    <label class="btn btn-outline-secondary" for="answer_none">Not Yet Resolved</label>
+
+                                    <input type="radio" class="btn-check" name="actual_answer" id="answer_yes" value="yes">
+                                    <label class="btn btn-outline-success" for="answer_yes">YES</label>
+
+                                    <input type="radio" class="btn-check" name="actual_answer" id="answer_no" value="no">
+                                    <label class="btn btn-outline-danger" for="answer_no">NO</label>
+                                </div>
+                                <small class="form-text text-muted">Select YES or NO to immediately resolve this question (useful for adding past questions)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Question</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">All Questions</h4>
+            </div>
+            <div class="card-body">
+                {% if questions %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Year</th>
+                                    <th>Question</th>
+                                    <th>Created By</th>
+                                    <th>Created At</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for question in questions|sort(attribute='year', reverse=True) %}
+                                    <tr>
+                                        <td>{{ question.year }}</td>
+                                        <td>{{ question.question_text }}</td>
+                                        <td>{{ question.created_by }}</td>
+                                        <td>
+                                            {% if question.created_at %}
+                                                {{ question.created_at[:10] }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if question.is_active|string|lower == 'true' %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No questions found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

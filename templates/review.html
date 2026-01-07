@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Review {{ year }} - Predictions Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Review Predictions - {{ year }}</h1>
+            <div>
+                <select class="form-select" onchange="window.location.href='{{ url_for('review') }}/' + this.value">
+                    <option value="">Select Year</option>
+                    {% for y in available_years %}
+                        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {% if score %}
+            <div class="card mb-4 bg-light">
+                <div class="card-body">
+                    <h3 class="card-title">Your Score for {{ year }}</h3>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h2 class="display-4 text-primary">{{ score.percentage }}%</h2>
+                                <p class="text-muted">Accuracy</p>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="row text-center">
+                                <div class="col">
+                                    <h4 class="text-success">{{ score.correct }}</h4>
+                                    <small>Correct</small>
+                                </div>
+                                <div class="col">
+                                    <h4 class="text-danger">{{ score.incorrect }}</h4>
+                                    <small>Incorrect</small>
+                                </div>
+                                <div class="col">
+                                    <h4 class="text-warning">{{ score.unresolved }}</h4>
+                                    <small>Unresolved</small>
+                                </div>
+                                <div class="col">
+                                    <h4>{{ score.total }}</h4>
+                                    <small>Total Resolved</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if items %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Question</th>
+                            <th>Your Prediction</th>
+                            <th>Actual Result</th>
+                            <th>Result</th>
+                            <th>Confidence</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                            <tr>
+                                <td>{{ item.question.question_text }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if item.prediction.answer == 'yes' else 'danger' }}">
+                                        {{ item.prediction.answer|upper }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if item.result %}
+                                        <span class="badge bg-{{ 'success' if item.result.actual_answer == 'yes' else 'danger' }}">
+                                            {{ item.result.actual_answer|upper }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Not Resolved</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.is_correct == True %}
+                                        <span class="text-success fw-bold">✓ Correct</span>
+                                    {% elif item.is_correct == False %}
+                                        <span class="text-danger fw-bold">✗ Incorrect</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% for i in range(1, 6) %}
+                                        {% if i <= item.prediction.confidence|int %}
+                                            <span class="text-warning">★</span>
+                                        {% else %}
+                                            <span class="text-muted">☆</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% if item.prediction.notes %}
+                                        <small>{{ item.prediction.notes[:50] }}{% if item.prediction.notes|length > 50 %}...{% endif %}</small>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <p>No predictions found for {{ year }}.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
