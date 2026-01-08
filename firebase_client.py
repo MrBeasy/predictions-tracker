@@ -116,6 +116,23 @@ class FirebaseClient:
 
         return question_id
 
+    def delete_question(self, question_id):
+        """Delete a question and its associated predictions and results"""
+        # Delete the question
+        self.db.collection(self.COLLECTION_QUESTIONS).document(question_id).delete()
+
+        # Delete all predictions for this question
+        predictions_ref = self.db.collection(self.COLLECTION_PREDICTIONS).where('question_id', '==', question_id)
+        for doc in predictions_ref.stream():
+            doc.reference.delete()
+
+        # Delete result for this question
+        results_ref = self.db.collection(self.COLLECTION_RESULTS).where('question_id', '==', question_id)
+        for doc in results_ref.stream():
+            doc.reference.delete()
+
+        return True
+
     # Prediction methods
     def get_all_predictions(self, username=None, year=None, question_id=None):
         """Get all predictions with optional filters"""

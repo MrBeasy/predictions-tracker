@@ -314,6 +314,18 @@ def admin_questions():
         return render_template('admin_questions.html', questions=[])
 
 
+@app.route('/admin/questions/delete/<question_id>', methods=['POST'])
+@auth.admin_required(config.admin_usernames)
+def admin_delete_question(question_id):
+    try:
+        firebase_client.delete_question(question_id)
+        flash('Question and all associated predictions deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error deleting question: {str(e)}', 'danger')
+
+    return redirect(url_for('admin_questions'))
+
+
 @app.route('/admin/resolve')
 @app.route('/admin/resolve/<int:year>', methods=['GET', 'POST'])
 @auth.admin_required(config.admin_usernames)
