@@ -15,13 +15,14 @@ class User:
 
 
 class Question:
-    def __init__(self, question_id, year, question_text, created_by, created_at=None, is_active=True):
+    def __init__(self, question_id, year, question_text, created_by, created_at=None, is_active=True, question_type='boolean'):
         self.question_id = question_id
         self.year = year
         self.question_text = question_text
         self.created_by = created_by
         self.created_at = created_at
         self.is_active = is_active
+        self.question_type = question_type
 
     @staticmethod
     def from_dict(data):
@@ -31,7 +32,8 @@ class Question:
             question_text=data.get('question_text'),
             created_by=data.get('created_by'),
             created_at=data.get('created_at'),
-            is_active=str(data.get('is_active', 'true')).lower() == 'true'
+            is_active=str(data.get('is_active', 'true')).lower() == 'true',
+            question_type=data.get('question_type', 'boolean')
         )
 
 
