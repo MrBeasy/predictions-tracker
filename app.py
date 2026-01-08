@@ -135,10 +135,14 @@ def predictions_new():
 
         available_questions = [q for q in questions if q.question_id not in predictions_dict]
 
+        # Get pre-selected question ID from URL parameter
+        pre_selected_id = request.args.get('question_id')
+
         return render_template(
             'predictions_new.html',
             questions=available_questions,
-            year=year
+            year=year,
+            pre_selected_question_id=pre_selected_id
         )
     except Exception as e:
         flash(f'Error loading questions: {str(e)}', 'danger')

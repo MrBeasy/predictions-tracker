@@ -24,7 +24,8 @@
                                 {% for question in questions %}
                                     <option value="{{ question.question_id }}"
                                             data-type="{{ question.question_type|default('boolean') }}"
-                                            data-text="{{ question.question_text }}">
+                                            data-text="{{ question.question_text }}"
+                                            {% if pre_selected_question_id and question.question_id == pre_selected_question_id %}selected{% endif %}>
                                         [{% if question.question_type == 'number' %}NUM{% elif question.question_type == 'text' %}TEXT{% else %}Y/N{% endif %}] {{ question.question_text }}
                                     </option>
                                 {% endfor %}
