@@ -27,7 +27,8 @@
                     <table class="table table-striped">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width: 60%;">Question</th>
+                                <th>Type</th>
+                                <th style="width: 50%;">Question</th>
                                 <th>Current Result</th>
                                 <th>Set Actual Result</th>
                                 <th>Action</th>
@@ -35,13 +36,29 @@
                         </thead>
                         <tbody>
                             {% for item in items %}
+                                {% set qtype = item.question.question_type|default('boolean') %}
                                 <tr>
+                                    <td>
+                                        {% if qtype == 'boolean' %}
+                                            <span class="badge bg-primary">Y/N</span>
+                                        {% elif qtype == 'number' %}
+                                            <span class="badge bg-info">NUM</span>
+                                        {% elif qtype == 'text' %}
+                                            <span class="badge bg-warning">TEXT</span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ item.question.question_text }}</td>
                                     <td>
                                         {% if item.result %}
-                                            <span class="badge bg-{{ 'success' if item.result.actual_answer == 'yes' else 'danger' }}">
-                                                {{ item.result.actual_answer|upper }}
-                                            </span>
+                                            {% if qtype == 'boolean' %}
+                                                <span class="badge bg-{{ 'success' if item.result.actual_answer == 'yes' else 'danger' }}">
+                                                    {{ item.result.actual_answer|upper }}
+                                                </span>
+                                            {% elif qtype == 'number' %}
+                                                <span class="badge bg-info">{{ item.result.actual_answer }}</span>
+                                            {% elif qtype == 'text' %}
+                                                <small>{{ item.result.actual_answer[:30] }}{% if item.result.actual_answer|length > 30 %}...{% endif %}</small>
+                                            {% endif %}
                                             <br>
                                             <small class="text-muted">
                                                 Resolved {{ item.result.resolved_at[:10] if item.result.resolved_at else '' }}
@@ -52,31 +69,81 @@
                                     </td>
                                     <td>
                                         <input type="hidden" name="question_id" value="{{ item.question.question_id }}" form="form_{{ item.question.question_id }}">
-                                        <div class="btn-group" role="group">
-                                            <input type="radio" class="btn-check" name="actual_answer_{{ item.question.question_id }}"
-                                                id="yes_{{ item.question.question_id }}" value="yes"
-                                                {% if item.result and item.result.actual_answer == 'yes' %}checked{% endif %}
-                                                form="form_{{ item.question.question_id }}">
-                                            <label class="btn btn-outline-success btn-sm" for="yes_{{ item.question.question_id }}">YES</label>
 
-                                            <input type="radio" class="btn-check" name="actual_answer_{{ item.question.question_id }}"
-                                                id="no_{{ item.question.question_id }}" value="no"
-                                                {% if item.result and item.result.actual_answer == 'no' %}checked{% endif %}
-                                                form="form_{{ item.question.question_id }}">
-                                            <label class="btn btn-outline-danger btn-sm" for="no_{{ item.question.question_id }}">NO</label>
-                                        </div>
+                                        {% if qtype == 'boolean' %}
+                                            <div class="btn-group" role="group">
+                                                <input type="radio" class="btn-check" name="actual_answer_{{ item.question.question_id }}"
+                                                    id="yes_{{ item.question.question_id }}" value="yes"
+                                                    {% if item.result and item.result.actual_answer == 'yes' %}checked{% endif %}
+                                                    form="form_{{ item.question.question_id }}">
+                                                <label class="btn btn-outline-success btn-sm" for="yes_{{ item.question.question_id }}">YES</label>
+
+                                                <input type="radio" class="btn-check" name="actual_answer_{{ item.question.question_id }}"
+                                                    id="no_{{ item.question.question_id }}" value="no"
+                                                    {% if item.result and item.result.actual_answer == 'no' %}checked{% endif %}
+                                                    form="form_{{ item.question.question_id }}">
+                                                <label class="btn btn-outline-danger btn-sm" for="no_{{ item.question.question_id }}">NO</label>
+                                            </div>
+                                        {% elif qtype == 'number' %}
+                                            <input type="number" class="form-control form-control-sm"
+                                                name="actual_answer_{{ item.question.question_id }}"
+                                                id="answer_{{ item.question.question_id }}"
+                                                value="{% if item.result %}{{ item.result.actual_answer }}{% endif %}"
+                                                step="any"
+                                                placeholder="Enter number"
+                                                form="form_{{ item.question.question_id }}"
+                                                style="max-width: 150px;">
+                                        {% elif qtype == 'text' %}
+                                            <textarea class="form-control form-control-sm"
+                                                name="actual_answer_{{ item.question.question_id }}"
+                                                id="answer_{{ item.question.question_id }}"
+                                                rows="2"
+                                                placeholder="Enter text"
+                                                form="form_{{ item.question.question_id }}"
+                                                style="max-width: 300px;">{% if item.result %}{{ item.result.actual_answer }}{% endif %}</textarea>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <form method="POST" id="form_{{ item.question.question_id }}" style="display: inline;">
                                             <input type="hidden" name="question_id" value="{{ item.question.question_id }}">
                                             <button type="submit" class="btn btn-primary btn-sm"
-                                                onclick="this.form.actual_answer.value = document.querySelector('input[name=actual_answer_{{ item.question.question_id }}]:checked')?.value; return document.querySelector('input[name=actual_answer_{{ item.question.question_id }}]:checked') !== null;">
+                                                onclick="return saveAnswer_{{ item.question.question_id }}(this.form);">
                                                 Save
                                             </button>
                                             <input type="hidden" name="actual_answer" value="">
                                         </form>
                                     </td>
                                 </tr>
+                                <script>
+                                function saveAnswer_{{ item.question.question_id }}(form) {
+                                    const qtype = '{{ qtype }}';
+                                    let answer = '';
+
+                                    if (qtype === 'boolean') {
+                                        const checked = document.querySelector('input[name=actual_answer_{{ item.question.question_id }}]:checked');
+                                        if (!checked) {
+                                            alert('Please select Yes or No');
+                                            return false;
+                                        }
+                                        answer = checked.value;
+                                    } else if (qtype === 'number') {
+                                        answer = document.getElementById('answer_{{ item.question.question_id }}').value;
+                                        if (!answer) {
+                                            alert('Please enter a number');
+                                            return false;
+                                        }
+                                    } else if (qtype === 'text') {
+                                        answer = document.getElementById('answer_{{ item.question.question_id }}').value;
+                                        if (!answer || !answer.trim()) {
+                                            alert('Please enter text');
+                                            return false;
+                                        }
+                                    }
+
+                                    form.actual_answer.value = answer;
+                                    return true;
+                                }
+                                </script>
                             {% endfor %}
                         </tbody>
                     </table>

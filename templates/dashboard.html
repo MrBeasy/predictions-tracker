@@ -22,6 +22,7 @@
                 <table class="table table-striped table-hover">
                     <thead class="table-dark">
                         <tr>
+                            <th>Type</th>
                             <th>Question</th>
                             <th>Your Prediction</th>
                             <th>Confidence</th>
@@ -34,12 +35,29 @@
                     <tbody>
                         {% for item in items %}
                             <tr>
+                                <td>
+                                    {% set qtype = item.question.question_type|default('boolean') %}
+                                    {% if qtype == 'boolean' %}
+                                        <span class="badge bg-primary">Y/N</span>
+                                    {% elif qtype == 'number' %}
+                                        <span class="badge bg-info">NUM</span>
+                                    {% elif qtype == 'text' %}
+                                        <span class="badge bg-warning">TEXT</span>
+                                    {% endif %}
+                                </td>
                                 <td>{{ item.question.question_text }}</td>
                                 <td>
                                     {% if item.prediction %}
-                                        <span class="badge bg-{{ 'success' if item.prediction.answer == 'yes' else 'danger' }}">
-                                            {{ item.prediction.answer|upper }}
-                                        </span>
+                                        {% set qtype = item.question.question_type|default('boolean') %}
+                                        {% if qtype == 'boolean' %}
+                                            <span class="badge bg-{{ 'success' if item.prediction.answer == 'yes' else 'danger' }}">
+                                                {{ item.prediction.answer|upper }}
+                                            </span>
+                                        {% elif qtype == 'number' %}
+                                            <span class="badge bg-info">{{ item.prediction.answer }}</span>
+                                        {% elif qtype == 'text' %}
+                                            <small>{{ item.prediction.answer[:30] }}{% if item.prediction.answer|length > 30 %}...{% endif %}</small>
+                                        {% endif %}
                                     {% else %}
                                         <span class="text-muted">Not predicted</span>
                                     {% endif %}

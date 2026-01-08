@@ -11,20 +11,47 @@
             <div class="card-body">
                 <div class="mb-4">
                     <h5 class="card-title">Question:</h5>
-                    <p class="lead">{{ question.question_text }}</p>
+                    <p class="lead">
+                        {% set qtype = question.question_type|default('boolean') %}
+                        {% if qtype == 'boolean' %}
+                            <span class="badge bg-primary">Yes/No</span>
+                        {% elif qtype == 'number' %}
+                            <span class="badge bg-info">Number</span>
+                        {% elif qtype == 'text' %}
+                            <span class="badge bg-warning">Text</span>
+                        {% endif %}
+                        {{ question.question_text }}
+                    </p>
                 </div>
 
                 <form method="POST">
-                    <div class="mb-3">
+                    <div class="mb-3" id="answer_container">
                         <label class="form-label">Your Prediction</label>
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" name="answer" id="answer_yes" value="yes"
-                                {% if prediction.answer == 'yes' %}checked{% endif %} required>
-                            <label class="btn btn-outline-success" for="answer_yes">YES</label>
 
-                            <input type="radio" class="btn-check" name="answer" id="answer_no" value="no"
-                                {% if prediction.answer == 'no' %}checked{% endif %} required>
-                            <label class="btn btn-outline-danger" for="answer_no">NO</label>
+                        <!-- Boolean answer -->
+                        <div id="boolean_input" class="answer-input-group" style="display: {% if qtype == 'boolean' %}block{% else %}none{% endif %};">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="answer_boolean" id="answer_yes" value="yes"
+                                    {% if prediction.answer == 'yes' %}checked{% endif %}>
+                                <label class="btn btn-outline-success" for="answer_yes">YES</label>
+
+                                <input type="radio" class="btn-check" name="answer_boolean" id="answer_no" value="no"
+                                    {% if prediction.answer == 'no' %}checked{% endif %}>
+                                <label class="btn btn-outline-danger" for="answer_no">NO</label>
+                            </div>
+                        </div>
+
+                        <!-- Number answer -->
+                        <div id="number_input" class="answer-input-group" style="display: {% if qtype == 'number' %}block{% else %}none{% endif %};">
+                            <input type="number" class="form-control" name="answer_number" step="any"
+                                placeholder="Enter your numeric prediction"
+                                value="{% if qtype == 'number' %}{{ prediction.answer }}{% endif %}">
+                        </div>
+
+                        <!-- Text answer -->
+                        <div id="text_input" class="answer-input-group" style="display: {% if qtype == 'text' %}block{% else %}none{% endif %};">
+                            <textarea class="form-control" name="answer_text" rows="3"
+                                placeholder="Enter your text prediction">{% if qtype == 'text' %}{{ prediction.answer }}{% endif %}</textarea>
                         </div>
                     </div>
 
@@ -53,4 +80,44 @@
         </div>
     </div>
 </div>
+
+<script>
+// Handle form submission to consolidate answer fields
+document.querySelector('form').addEventListener('submit', function(e) {
+    const questionType = '{{ question.question_type|default("boolean") }}';
+    let answer = '';
+
+    if (questionType === 'boolean') {
+        const checked = document.querySelector('input[name="answer_boolean"]:checked');
+        if (checked) {
+            answer = checked.value;
+        } else {
+            alert('Please select Yes or No');
+            e.preventDefault();
+            return;
+        }
+    } else if (questionType === 'number') {
+        answer = document.querySelector('input[name="answer_number"]').value;
+        if (!answer) {
+            alert('Please enter a numeric prediction');
+            e.preventDefault();
+            return;
+        }
+    } else if (questionType === 'text') {
+        answer = document.querySelector('textarea[name="answer_text"]').value;
+        if (!answer || !answer.trim()) {
+            alert('Please enter a text prediction');
+            e.preventDefault();
+            return;
+        }
+    }
+
+    // Create hidden input for consolidated answer
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'answer';
+    hiddenInput.value = answer;
+    this.appendChild(hiddenInput);
+});
+</script>
 {% endblock %}

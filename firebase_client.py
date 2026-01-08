@@ -99,13 +99,14 @@ class FirebaseClient:
             return data
         return None
 
-    def add_question(self, year, question_text, created_by):
+    def add_question(self, year, question_text, created_by, question_type='boolean'):
         """Add a new question"""
         question_id = utils.generate_id()
 
         question_data = {
             'year': int(year),
             'question_text': question_text,
+            'question_type': question_type,  # 'boolean', 'number', or 'text'
             'created_by': created_by,
             'created_at': utils.current_timestamp(),
             'is_active': True

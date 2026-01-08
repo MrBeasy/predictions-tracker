@@ -83,26 +83,45 @@ class Result:
 
 class ScoreCalculator:
     @staticmethod
-    def calculate_basic_score(predictions, results):
+    def calculate_basic_score(predictions, results, questions):
         if not predictions:
             return {
                 'total': 0,
                 'correct': 0,
                 'incorrect': 0,
                 'unresolved': 0,
+                'text_questions': 0,
                 'percentage': 0.0
             }
 
         results_dict = {r['question_id']: r for r in results}
+        questions_dict = {q['question_id']: q for q in questions}
 
         correct = 0
         incorrect = 0
         unresolved = 0
+        text_questions = 0
 
         for pred in predictions:
+            question = questions_dict.get(pred['question_id'])
+            if not question:
+                continue
+
+            question_type = question.get('question_type', 'boolean')
+
+            # Skip text questions from scoring
+            if question_type == 'text':
+                text_questions += 1
+                continue
+
             result = results_dict.get(pred['question_id'])
             if result:
-                if utils.normalize_answer(pred['answer']) == utils.normalize_answer(result['actual_answer']):
+                is_correct = utils.compare_answers(
+                    pred['answer'],
+                    result['actual_answer'],
+                    question_type
+                )
+                if is_correct:
                     correct += 1
                 else:
                     incorrect += 1
@@ -117,20 +136,36 @@ class ScoreCalculator:
             'correct': correct,
             'incorrect': incorrect,
             'unresolved': unresolved,
+            'text_questions': text_questions,
             'percentage': percentage
         }
 
     @staticmethod
-    def calculate_confidence_calibration(predictions, results):
+    def calculate_confidence_calibration(predictions, results, questions):
         results_dict = {r['question_id']: r for r in results}
+        questions_dict = {q['question_id']: q for q in questions}
 
         by_confidence = {1: [], 2: [], 3: [], 4: [], 5: []}
 
         for pred in predictions:
+            question = questions_dict.get(pred['question_id'])
+            if not question:
+                continue
+
+            question_type = question.get('question_type', 'boolean')
+
+            # Skip text questions from calibration
+            if question_type == 'text':
+                continue
+
             result = results_dict.get(pred['question_id'])
             if result:
                 confidence = int(pred.get('confidence', 3))
-                is_correct = utils.normalize_answer(pred['answer']) == utils.normalize_answer(result['actual_answer'])
+                is_correct = utils.compare_answers(
+                    pred['answer'],
+                    result['actual_answer'],
+                    question_type
+                )
                 by_confidence[confidence].append(is_correct)
 
         calibration = {}
@@ -173,13 +208,26 @@ class PredictionService:
         return [Prediction.from_dict(p) for p in predictions_data]
 
     def create_prediction(self, question_id, username, year, answer, confidence, notes=''):
-        if not utils.validate_answer(answer):
-            raise ValueError("Invalid answer. Must be 'yes' or 'no'")
+        # Get question to determine type
+        question = self.db.get_question(question_id)
+        if not question:
+            raise ValueError("Question not found")
+
+        question_type = question.get('question_type', 'boolean')
+
+        # Validate answer based on question type
+        if not utils.validate_answer(answer, question_type):
+            if question_type == 'boolean':
+                raise ValueError("Invalid answer. Must be 'yes' or 'no'")
+            elif question_type == 'number':
+                raise ValueError("Invalid answer. Must be a valid number")
+            elif question_type == 'text':
+                raise ValueError("Invalid answer. Cannot be empty")
 
         if not utils.validate_confidence(confidence):
             raise ValueError("Invalid confidence. Must be 1-5")
 
-        answer = utils.normalize_answer(answer)
+        answer = utils.normalize_answer(answer, question_type)
         prediction_id = self.db.add_prediction(
             question_id=question_id,
             username=username,
@@ -191,13 +239,31 @@ class PredictionService:
         return prediction_id
 
     def update_prediction(self, prediction_id, answer, confidence, notes=''):
-        if not utils.validate_answer(answer):
-            raise ValueError("Invalid answer. Must be 'yes' or 'no'")
+        # Get prediction to find question
+        prediction, _ = self.db.get_prediction(prediction_id)
+        if not prediction:
+            raise ValueError("Prediction not found")
+
+        # Get question to determine type
+        question = self.db.get_question(prediction['question_id'])
+        if not question:
+            raise ValueError("Question not found")
+
+        question_type = question.get('question_type', 'boolean')
+
+        # Validate answer based on question type
+        if not utils.validate_answer(answer, question_type):
+            if question_type == 'boolean':
+                raise ValueError("Invalid answer. Must be 'yes' or 'no'")
+            elif question_type == 'number':
+                raise ValueError("Invalid answer. Must be a valid number")
+            elif question_type == 'text':
+                raise ValueError("Invalid answer. Cannot be empty")
 
         if not utils.validate_confidence(confidence):
             raise ValueError("Invalid confidence. Must be 1-5")
 
-        answer = utils.normalize_answer(answer)
+        answer = utils.normalize_answer(answer, question_type)
         success = self.db.update_prediction(
             prediction_id=prediction_id,
             answer=answer,
@@ -206,25 +272,42 @@ class PredictionService:
         )
         return success
 
-    def create_question(self, year, question_text, created_by):
+    def create_question(self, year, question_text, created_by, question_type='boolean'):
         if not question_text or len(question_text.strip()) == 0:
             raise ValueError("Question text cannot be empty")
 
         if not utils.validate_year(year):
             raise ValueError("Invalid year")
 
+        if not utils.validate_question_type(question_type):
+            raise ValueError("Invalid question type. Must be 'boolean', 'number', or 'text'")
+
         question_id = self.db.add_question(
             year=year,
             question_text=question_text.strip(),
-            created_by=created_by
+            created_by=created_by,
+            question_type=question_type
         )
         return question_id
 
     def resolve_question(self, question_id, year, actual_answer, resolved_by):
-        if not utils.validate_answer(actual_answer):
-            raise ValueError("Invalid answer. Must be 'yes' or 'no'")
+        # Get question to determine type
+        question = self.db.get_question(question_id)
+        if not question:
+            raise ValueError("Question not found")
 
-        actual_answer = utils.normalize_answer(actual_answer)
+        question_type = question.get('question_type', 'boolean')
+
+        # Validate answer based on question type
+        if not utils.validate_answer(actual_answer, question_type):
+            if question_type == 'boolean':
+                raise ValueError("Invalid answer. Must be 'yes' or 'no'")
+            elif question_type == 'number':
+                raise ValueError("Invalid answer. Must be a valid number")
+            elif question_type == 'text':
+                raise ValueError("Invalid answer. Cannot be empty")
+
+        actual_answer = utils.normalize_answer(actual_answer, question_type)
 
         existing_result, _ = self.db.get_result(question_id)
         if existing_result:
@@ -240,9 +323,10 @@ class PredictionService:
     def get_score_for_user_year(self, username, year):
         predictions = self.db.get_all_predictions(username=username, year=year)
         results = self.db.get_all_results(year=year)
+        questions = self.db.get_all_questions(year=year, active_only=False)
 
-        score = ScoreCalculator.calculate_basic_score(predictions, results)
-        calibration = ScoreCalculator.calculate_confidence_calibration(predictions, results)
+        score = ScoreCalculator.calculate_basic_score(predictions, results, questions)
+        calibration = ScoreCalculator.calculate_confidence_calibration(predictions, results, questions)
 
         return {
             'score': score,

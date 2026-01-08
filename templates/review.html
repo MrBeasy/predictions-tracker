@@ -46,6 +46,12 @@
                                     <h4>{{ score.total }}</h4>
                                     <small>Total Resolved</small>
                                 </div>
+                                {% if score.text_questions > 0 %}
+                                <div class="col">
+                                    <h4 class="text-info">{{ score.text_questions }}</h4>
+                                    <small>Text (Not Scored)</small>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -58,6 +64,7 @@
                 <table class="table table-striped">
                     <thead class="table-dark">
                         <tr>
+                            <th>Type</th>
                             <th>Question</th>
                             <th>Your Prediction</th>
                             <th>Actual Result</th>
@@ -68,24 +75,48 @@
                     </thead>
                     <tbody>
                         {% for item in items %}
+                            {% set qtype = item.question.question_type|default('boolean') %}
                             <tr>
+                                <td>
+                                    {% if qtype == 'boolean' %}
+                                        <span class="badge bg-primary">Y/N</span>
+                                    {% elif qtype == 'number' %}
+                                        <span class="badge bg-info">NUM</span>
+                                    {% elif qtype == 'text' %}
+                                        <span class="badge bg-warning">TEXT</span>
+                                    {% endif %}
+                                </td>
                                 <td>{{ item.question.question_text }}</td>
                                 <td>
-                                    <span class="badge bg-{{ 'success' if item.prediction.answer == 'yes' else 'danger' }}">
-                                        {{ item.prediction.answer|upper }}
-                                    </span>
+                                    {% if qtype == 'boolean' %}
+                                        <span class="badge bg-{{ 'success' if item.prediction.answer == 'yes' else 'danger' }}">
+                                            {{ item.prediction.answer|upper }}
+                                        </span>
+                                    {% elif qtype == 'number' %}
+                                        <span class="badge bg-info">{{ item.prediction.answer }}</span>
+                                    {% elif qtype == 'text' %}
+                                        <small>{{ item.prediction.answer[:30] }}{% if item.prediction.answer|length > 30 %}...{% endif %}</small>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if item.result %}
-                                        <span class="badge bg-{{ 'success' if item.result.actual_answer == 'yes' else 'danger' }}">
-                                            {{ item.result.actual_answer|upper }}
-                                        </span>
+                                        {% if qtype == 'boolean' %}
+                                            <span class="badge bg-{{ 'success' if item.result.actual_answer == 'yes' else 'danger' }}">
+                                                {{ item.result.actual_answer|upper }}
+                                            </span>
+                                        {% elif qtype == 'number' %}
+                                            <span class="badge bg-info">{{ item.result.actual_answer }}</span>
+                                        {% elif qtype == 'text' %}
+                                            <small>{{ item.result.actual_answer[:30] }}{% if item.result.actual_answer|length > 30 %}...{% endif %}</small>
+                                        {% endif %}
                                     {% else %}
                                         <span class="badge bg-secondary">Not Resolved</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if item.is_correct == True %}
+                                    {% if qtype == 'text' %}
+                                        <span class="text-muted fst-italic">Manual review</span>
+                                    {% elif item.is_correct == True %}
                                         <span class="text-success fw-bold">✓ Correct</span>
                                     {% elif item.is_correct == False %}
                                         <span class="text-danger fw-bold">✗ Incorrect</span>

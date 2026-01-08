@@ -275,17 +275,19 @@ def admin_questions():
     if request.method == 'POST':
         year = request.form.get('year')
         question_text = request.form.get('question_text')
+        question_type = request.form.get('question_type', 'boolean')
         actual_answer = request.form.get('actual_answer')
 
         try:
             question_id = prediction_service.create_question(
                 year=year,
                 question_text=question_text,
-                created_by=username
+                created_by=username,
+                question_type=question_type
             )
 
             # If actual_answer is provided, resolve the question immediately
-            if actual_answer and actual_answer in ['yes', 'no']:
+            if actual_answer:
                 prediction_service.resolve_question(
                     question_id=question_id,
                     year=year,

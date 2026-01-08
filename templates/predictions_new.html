@@ -19,24 +19,40 @@
                     <form method="POST">
                         <div class="mb-3">
                             <label for="question_id" class="form-label">Select Question</label>
-                            <select class="form-select" id="question_id" name="question_id" required onchange="updateQuestionDisplay()">
+                            <select class="form-select" id="question_id" name="question_id" required onchange="updateAnswerInput()">
                                 <option value="">-- Choose a question --</option>
                                 {% for question in questions %}
-                                    <option value="{{ question.question_id }}" data-text="{{ question.question_text }}">
-                                        {{ question.question_text }}
+                                    <option value="{{ question.question_id }}"
+                                            data-type="{{ question.question_type|default('boolean') }}"
+                                            data-text="{{ question.question_text }}">
+                                        [{% if question.question_type == 'number' %}NUM{% elif question.question_type == 'text' %}TEXT{% else %}Y/N{% endif %}] {{ question.question_text }}
                                     </option>
                                 {% endfor %}
                             </select>
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3" id="answer_container">
                             <label class="form-label">Your Prediction</label>
-                            <div class="btn-group w-100" role="group">
-                                <input type="radio" class="btn-check" name="answer" id="answer_yes" value="yes" required>
-                                <label class="btn btn-outline-success" for="answer_yes">YES</label>
 
-                                <input type="radio" class="btn-check" name="answer" id="answer_no" value="no" required>
-                                <label class="btn btn-outline-danger" for="answer_no">NO</label>
+                            <!-- Boolean answer -->
+                            <div id="boolean_input" class="answer-input-group">
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="answer_boolean" id="answer_yes" value="yes">
+                                    <label class="btn btn-outline-success" for="answer_yes">YES</label>
+
+                                    <input type="radio" class="btn-check" name="answer_boolean" id="answer_no" value="no">
+                                    <label class="btn btn-outline-danger" for="answer_no">NO</label>
+                                </div>
+                            </div>
+
+                            <!-- Number answer -->
+                            <div id="number_input" class="answer-input-group" style="display: none;">
+                                <input type="number" class="form-control" name="answer_number" step="any" placeholder="Enter your numeric prediction">
+                            </div>
+
+                            <!-- Text answer -->
+                            <div id="text_input" class="answer-input-group" style="display: none;">
+                                <textarea class="form-control" name="answer_text" rows="3" placeholder="Enter your text prediction"></textarea>
                             </div>
                         </div>
 
@@ -67,4 +83,80 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+function updateAnswerInput() {
+    const select = document.getElementById('question_id');
+    const selectedOption = select.options[select.selectedIndex];
+    const questionType = selectedOption.getAttribute('data-type') || 'boolean';
+
+    const booleanInput = document.getElementById('boolean_input');
+    const numberInput = document.getElementById('number_input');
+    const textInput = document.getElementById('text_input');
+
+    // Hide all inputs
+    booleanInput.style.display = 'none';
+    numberInput.style.display = 'none';
+    textInput.style.display = 'none';
+
+    // Clear all inputs
+    document.querySelectorAll('input[name="answer_boolean"]').forEach(input => input.checked = false);
+    document.querySelector('input[name="answer_number"]').value = '';
+    document.querySelector('textarea[name="answer_text"]').value = '';
+
+    // Show appropriate input
+    if (questionType === 'boolean') {
+        booleanInput.style.display = 'block';
+    } else if (questionType === 'number') {
+        numberInput.style.display = 'block';
+    } else if (questionType === 'text') {
+        textInput.style.display = 'block';
+    }
+}
+
+// Handle form submission to consolidate answer fields
+document.querySelector('form').addEventListener('submit', function(e) {
+    const select = document.getElementById('question_id');
+    const selectedOption = select.options[select.selectedIndex];
+    const questionType = selectedOption.getAttribute('data-type') || 'boolean';
+    let answer = '';
+
+    if (questionType === 'boolean') {
+        const checked = document.querySelector('input[name="answer_boolean"]:checked');
+        if (checked) {
+            answer = checked.value;
+        } else {
+            alert('Please select Yes or No');
+            e.preventDefault();
+            return;
+        }
+    } else if (questionType === 'number') {
+        answer = document.querySelector('input[name="answer_number"]').value;
+        if (!answer) {
+            alert('Please enter a numeric prediction');
+            e.preventDefault();
+            return;
+        }
+    } else if (questionType === 'text') {
+        answer = document.querySelector('textarea[name="answer_text"]').value;
+        if (!answer || !answer.trim()) {
+            alert('Please enter a text prediction');
+            e.preventDefault();
+            return;
+        }
+    }
+
+    // Create hidden input for consolidated answer
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'answer';
+    hiddenInput.value = answer;
+    this.appendChild(hiddenInput);
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateAnswerInput();
+});
+</script>
 {% endblock %}

@@ -36,17 +36,42 @@ def format_date(dt):
     return ''
 
 
-def validate_answer(answer):
-    if not answer:
+def validate_answer(answer, question_type='boolean'):
+    """Validate answer based on question type"""
+    if not answer and answer != 0:  # Allow 0 for numbers
         return False
-    answer = answer.lower().strip()
-    return answer in ['yes', 'no']
+
+    if question_type == 'boolean':
+        answer_lower = str(answer).lower().strip()
+        return answer_lower in ['yes', 'no']
+    elif question_type == 'number':
+        try:
+            float(answer)
+            return True
+        except (ValueError, TypeError):
+            return False
+    elif question_type == 'text':
+        return len(str(answer).strip()) > 0
+
+    return False
 
 
-def normalize_answer(answer):
-    if not answer:
+def normalize_answer(answer, question_type='boolean'):
+    """Normalize answer based on question type"""
+    if not answer and answer != 0:
         return None
-    return answer.lower().strip()
+
+    if question_type == 'boolean':
+        return str(answer).lower().strip()
+    elif question_type == 'number':
+        try:
+            return float(answer)
+        except (ValueError, TypeError):
+            return None
+    elif question_type == 'text':
+        return str(answer).strip()
+
+    return str(answer).strip()
 
 
 def validate_confidence(confidence):
@@ -88,3 +113,36 @@ def calculate_percentage(correct, total):
     if total == 0:
         return 0.0
     return round((correct / total) * 100, 1)
+
+
+def compare_answers(predicted, actual, question_type='boolean', tolerance_percent=10):
+    """Compare predicted vs actual answer based on question type"""
+    if predicted is None or actual is None:
+        return False
+
+    if question_type == 'boolean':
+        return normalize_answer(predicted, 'boolean') == normalize_answer(actual, 'boolean')
+    elif question_type == 'number':
+        try:
+            pred_num = float(predicted)
+            actual_num = float(actual)
+
+            # If actual is 0, use absolute tolerance
+            if actual_num == 0:
+                return abs(pred_num - actual_num) < 0.01
+
+            # Otherwise use percentage tolerance
+            tolerance = abs(actual_num * (tolerance_percent / 100))
+            return abs(pred_num - actual_num) <= tolerance
+        except (ValueError, TypeError):
+            return False
+    elif question_type == 'text':
+        # Text answers can't be automatically scored
+        return None
+
+    return False
+
+
+def validate_question_type(question_type):
+    """Validate question type"""
+    return question_type in ['boolean', 'number', 'text']
