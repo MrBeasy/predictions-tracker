@@ -2,9 +2,12 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 export default function Login() {
   const [loading, setLoading] = useState(false)
+  const searchParams = useSearchParams()
+  const error = searchParams.get('error')
   const supabase = createClient()
 
   const handleGoogleSignIn = async () => {
@@ -32,6 +35,14 @@ export default function Login() {
             Track and score your yearly predictions
           </p>
         </div>
+        {error === 'not_authorized' && (
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
+            <p className="text-sm font-medium">Access Denied</p>
+            <p className="text-sm mt-1">
+              Your email is not authorized to access this application. Please contact the administrator for access.
+            </p>
+          </div>
+        )}
         <div className="mt-8">
           <button
             onClick={handleGoogleSignIn}

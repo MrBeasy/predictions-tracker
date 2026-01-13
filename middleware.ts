@@ -39,6 +39,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // If user is authenticated, check if they have a profile (i.e., they're on the allowlist)
+  if (user && !request.nextUrl.pathname.startsWith('/login') && request.nextUrl.pathname !== '/') {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single()
+
+    // If no profile exists, user is not on allowlist - sign them out and redirect
+    if (!profile) {
+      await supabase.auth.signOut()
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('error', 'not_authorized')
+      return NextResponse.redirect(url)
+    }
+  }
+
   return supabaseResponse
 }
 
