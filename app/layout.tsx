@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: "Prediction Tracker",
@@ -13,10 +14,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-        <Navbar />
-        {children}
+        <ThemeProvider defaultTheme="light" storageKey="prediction-tracker-theme">
+          <Navbar />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

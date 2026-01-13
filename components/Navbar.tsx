@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useEffect, useState } from 'react'
 import { Button } from './ui/button'
+import { ThemeToggle } from './ThemeToggle'
+import { Home, ListTodo, CheckSquare, Trophy } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 export default function Navbar() {
@@ -49,50 +51,55 @@ export default function Navbar() {
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
                   href="/"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  className={`inline-flex items-center gap-2 px-1 pt-1 border-b-2 text-sm font-medium ${
                     isActive('/')
                       ? 'border-primary text-foreground'
                       : 'border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground'
                   }`}
                 >
+                  <Home className="h-4 w-4" />
                   Dashboard
                 </Link>
                 <Link
                   href="/questions"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  className={`inline-flex items-center gap-2 px-1 pt-1 border-b-2 text-sm font-medium ${
                     isActive('/questions')
                       ? 'border-primary text-foreground'
                       : 'border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground'
                   }`}
                 >
+                  <ListTodo className="h-4 w-4" />
                   Questions
                 </Link>
                 <Link
                   href="/my-predictions"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  className={`inline-flex items-center gap-2 px-1 pt-1 border-b-2 text-sm font-medium ${
                     isActive('/my-predictions')
                       ? 'border-primary text-foreground'
                       : 'border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground'
                   }`}
                 >
+                  <CheckSquare className="h-4 w-4" />
                   My Predictions
                 </Link>
                 <Link
                   href="/leaderboard"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  className={`inline-flex items-center gap-2 px-1 pt-1 border-b-2 text-sm font-medium ${
                     isActive('/leaderboard')
                       ? 'border-primary text-foreground'
                       : 'border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground'
                   }`}
                 >
+                  <Trophy className="h-4 w-4" />
                   Leaderboard
                 </Link>
               </div>
             )}
           </div>
           {user && (
-            <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-4">{user.email}</span>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <span className="text-sm text-muted-foreground">{user.email}</span>
               <Button onClick={handleSignOut} variant="outline" size="sm">
                 Sign Out
               </Button>
